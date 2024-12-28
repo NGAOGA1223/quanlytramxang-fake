@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quản Lý Trạm Xăng</title>
+
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css" rel="stylesheet">
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css">
+
+    <!-- Custom CSS -->
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f8f9fa;
+        }
+
+        #map {
+            height: calc(100vh - 56px);
+            width: 100%;
+            transition: all 0.3s ease-in-out;
+        }
+
+        #sidebar {
+            width: 280px;
+            height: calc(100vh - 56px);
+            position: fixed;
+            top: 56px;
+            left: -280px;
+            background-color: #ffffff;
+            padding: 60px 20px 20px; /* Added top padding */
+            overflow-y: auto;
+            transition: all 0.3s ease-in-out;
+            box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+            z-index: 1001; /* Increased z-index */
+        }
+
+        #sidebar.active {
+            left: 0;
+        }
+
+        .nav-link {
+            color: #495057;
+            transition: all 0.2s ease-in-out;
+        }
+
+        .nav-link:hover {
+            background-color: #e9ecef;
+            color: #007bff;
+        }
+
+        .nav-link.active {
+            background-color: #007bff;
+            color: #ffffff;
+        }
+
+        #toggleSidebar {
+            position: fixed;
+            top: 70px;
+            left: 20px; /* Changed from 15px to 20px */
+            z-index: 1002; /* Increased z-index to ensure it's above the sidebar */
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            padding: 10px 15px;
+            cursor: pointer;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+
+        .navbar {
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        @media (max-width: 768px) {
+            #sidebar {
+                width: 100%;
+                left: -100%;
+            }
+            #sidebar.active {
+                left: 0;
+            }
+        }
+
+        .leaflet-top.leaflet-left {
+            top: 70px; /* Adjust this value as needed */
+        }
+    </style>
+</head>
+
+<body>
+<!-- Navbar -->
+<nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="#">
+            <i class="bi bi-fuel-pump-fill me-2"></i>
+            Quản Lý Trạm Xăng
+        </a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav ms-auto">
+                <li class="nav-item">
+                    <a class="nav-link" href="#" th:text="${#authentication.name}">
+                        <i class="bi bi-person-circle me-1"></i>
+                        User
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/logout">
+                        <i class="bi bi-box-arrow-right me-1"></i>
+                        Đăng Xuất
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<!-- Sidebar toggle button -->
+<button id="toggleSidebar" class="btn">
+    <i class="bi bi-list"></i>
+</button>
+
+<!-- Sidebar -->
+<div id="sidebar">
+    <h4 class="mb-4">Chức Năng Quản Lý</h4>
+    <ul class="nav flex-column">
+        <li class="nav-item mb-2">
+            <a class="nav-link active" href="/index">
+                <i class="bi bi-fuel-pump me-2"></i>Quản Lý Trạm Xăng
+            </a>
+        </li>
+        <li class="nav-item mb-2">
+            <a class="nav-link" href="/kho">
+                <i class="bi bi-box-seam me-2"></i>Quản Lý Kho
+            </a>
+        </li>
+        <li class="nav-item mb-2">
+            <a class="nav-link" href="/xangdau.html">
+                <i class="bi bi-droplet-half me-2"></i>Quản Lý Xăng Dầu
+            </a>
+        </li>
+        <li class="nav-item mb-2">
+            <a class="nav-link" href="/doanhthu.html">
+                <i class="bi bi-graph-up me-2"></i>Quản Lý Doanh Thu
+            </a>
+        </li>
+        <li class="nav-item mb-2">
+            <a class="nav-link" href="/nhanvien.html">
+                <i class="bi bi-people me-2"></i>Quản Lý Nhân Viên
+            </a>
+        </li>
+        <li class="nav-item mb-2">
+            <a class="nav-link" href="/hoadon.html">
+                <i class="bi bi-receipt me-2"></i>Quản Lý Hóa Đơn
+            </a>
+        </li>
+        <li class="nav-item mb-2">
+            <a class="nav-link" href="/phieunhap.html">
+                <i class="bi bi-file-earmark-text me-2"></i>Quản Lý Phiếu Nhập
+            </a>
+        </li>
+        <li class="nav-item mb-2">
+            <a class="nav-link" href="/taikhoan.html">
+                <i class="bi bi-person-badge me-2"></i>Quản Lý Tài Khoản
+            </a>
+        </li>
+    </ul>
+    <hr>
+    <h5 class="mb-3">Tìm Kiếm Trạm Xăng</h5>
+    <div id="search-bar">
+        <input type="text" id="searchInput" class="form-control mb-2" placeholder="Nhập tên trạm hoặc địa chỉ...">
+        <button class="btn btn-primary w-100" onclick="searchStation()">
+            <i class="bi bi-search me-2"></i>Tìm Kiếm
+        </button>
+    </div>
+</div>
+
+<!-- Main Content -->
+<div id="map"></div>
+
+<!-- Modal thêm/sửa trạm xăng -->
+<div class="modal fade" id="tramXangModal" tabindex="-1" aria-labelledby="tramXangModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="tramXangForm" th:action="@{/api/tramxang}" method="post" enctype="multipart/form-data">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="tramXangModalLabel">Thêm/Sửa Trạm Xăng</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="maTram" name="maTram" th:value="${tramXang?.maTram}">
+                    <div class="mb-3">
+                        <label for="tenTram" class="form-label">Tên Trạm</label>
+                        <input type="text" class="form-control" id="tenTram" name="tenTram" th:value="${tramXang?.tenTram}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="diaChi" class="form-label">Địa Chỉ</label>
+                        <input type="text" class="form-control" id="diaChi" name="diaChi" th:value="${tramXang?.diaChi}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="truongTram" class="form-label">Tên Trưởng Trạm</label>
+                        <input type="text" class="form-control" id="truongTram" name="truongTram" th:value="${tramXang?.truongTram}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="kinhDo" class="form-label">Kinh Độ</label>
+                        <input type="text" class="form-control" id="kinhDo" name="kinhDo" th:value="${tramXang?.kinhDo}" readonly>
+                    </div>
+                    <div class="mb-3">
+                        <label for="viDo" class="form-label">Vĩ Độ</label>
+                        <input type="text" class="form-control" id="viDo" name="viDo" th:value="${tramXang?.viDo}" readonly>
+                    </div>
+                    <div class="mb-3">
+                        <label for="hinhAnh" class="form-label">Hình Ảnh</label>
+                        <input type="file" class="form-control" id="hinhAnh" name="hinhAnh">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+                    <button type="submit" class="btn btn-primary">Lưu</button>
+                    <button type="button" class="btn btn-danger" id="btnDelete" th:if="${tramXang?.maTram}">Xóa</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+
+<!-- Custom JS -->
+<script th:inline="javascript">
+    // Sidebar toggle functionality
+    document.addEventListener('DOMContentLoaded', function () {
+        const toggleSidebarButton = document.getElementById('toggleSidebar');
+        const sidebar = document.getElementById('sidebar');
+        const map = document.getElementById('map');
+
+        toggleSidebarButton.addEventListener('click', () => {
+            sidebar.classList.toggle('active');
+            if (sidebar.classList.contains('active')) {
+                map.style.marginLeft = '270px';
+            } else {
+                map.style.marginLeft = '0px';
+            }
+        });
+    });
+
+    let markers = [];
+    let map = L.map('map').setView([9.9125186, 105.1474038], 13); // Vị trí mặc định
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+    }).addTo(map);
+
+    let currentMarker = null;
+
+    // Load trạm xăng từ CSDL
+    fetch('/api/tramxang')
+        .then(response => response.json())
+        .then(data => {
+            data.forEach(tram => {
+                let imageUrl = tram.tenHinhAnh ? `/images/${tram.tenHinhAnh}` : '/images/default.jpg';
+                let marker = L.marker([tram.viDo, tram.kinhDo], { data: tram }).addTo(map)
+                    .bindPopup(`<b>${tram.tenTram}</b><br>${tram.diaChi}<br>Trưởng trạm: ${tram.truongTram}<br><img src="${imageUrl}" alt="Hình ảnh trạm xăng" width="100%">`)
+                    .on('mouseover', function () {
+                        this.openPopup();
+                    })
+                    .on('mouseout', function () {
+                        this.closePopup();
+                    })
+                    .on('click', () => {
+                        currentMarker = marker;
+                        showEditOrDeleteModal(marker);
+                    });
+
+                markers.push(marker);
+            });
+        });
+
+    // Khi click trên bản đồ để thêm mới
+    map.on('click', function (e) {
+        currentMarker = null;
+        showAddModal(e.latlng.lat, e.latlng.lng);
+    });
+
+    function showAddModal(lat, lng) {
+        document.getElementById('tramXangModalLabel').innerText = 'Thêm Trạm Xăng Mới';
+        document.getElementById('maTram').value = '';
+        document.getElementById('tenTram').value = '';
+        document.getElementById('diaChi').value = 'Đang lấy địa chỉ...';
+        document.getElementById('truongTram').value = '';
+        document.getElementById('kinhDo').value = lng;
+        document.getElementById('viDo').value = lat;
+        document.getElementById('hinhAnh').value = '';
+
+        fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`)
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('diaChi').value = data.display_name;
+            });
+
+        new bootstrap.Modal(document.getElementById('tramXangModal')).show();
+    }
+
+    function showEditOrDeleteModal(marker) {
+        const tram = marker.options.data;
+        document.getElementById('tramXangModalLabel').innerText = 'Chỉnh Sửa Trạm Xăng';
+        document.getElementById('maTram').value = tram.maTram;
+        document.getElementById('tenTram').value = tram.tenTram;
+        document.getElementById('diaChi').value = tram.diaChi;
+        document.getElementById('truongTram').value = tram.truongTram;
+        document.getElementById('kinhDo').value = tram.kinhDo;
+        document.getElementById('viDo').value = tram.viDo;
+
+        new bootstrap.Modal(document.getElementById('tramXangModal')).show();
+    }
+
+    // Xử lý form submit
+    document.getElementById('tramXangForm').addEventListener('submit', function (e) {
+        e.preventDefault();
+
+        let formData = new FormData(this);
+        let maTram = formData.get('maTram');
+        let method = maTram ? 'PUT' : 'POST';
+        let url = maTram ? `/api/tramxang/${maTram}` : '/api/tramxang';
+
+        fetch(url, {
+            method: method,
+            body: formData
+        })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Có lỗi xảy ra!');
+                }
+                alert('Thêm/Sửa trạm xăng thành công!');
+                location.reload();
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Có lỗi xảy ra! Vui lòng kiểm tra lại.');
+            });
+    });
+
+    // Xử lý nút xóa
+    document.getElementById('btnDelete')?.addEventListener('click', function () {
+        if (currentMarker && confirm('Bạn có chắc chắn muốn xóa trạm xăng này?')) {
+            fetch(`/api/tramxang/${currentMarker.options.data.maTram}`, {
+                method: 'DELETE'
+            })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Có lỗi xảy ra khi xóa!');
+                    }
+                    alert('Xóa trạm xăng thành công!');
+                    location.reload();
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Có lỗi xảy ra! Vui lòng kiểm tra lại.');
+                });
+        }
+    });
+
+    function searchStation() {
+        const searchValue = document.getElementById('searchInput').value.toLowerCase();
+        markers.forEach(marker => {
+            const tram = marker.options.data;
+            if (tram.tenTram.toLowerCase().includes(searchValue) || tram.diaChi.toLowerCase().includes(searchValue)) {
+                map.setView(marker.getLatLng(), 15);
+                marker.openPopup();
+            }
+        });
+    }
+</script>
+</body>
+
+</html>
